@@ -22,8 +22,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define LINE_BUFFER_SIZE 10
-#define LINE_SIZE 100
 
 /* USER CODE END Includes */
 
@@ -44,20 +42,11 @@
 
 /* Private variables ---------------------------------------------------------*/
 RTC_HandleTypeDef hrtc;
-
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
-char received_byte = 0;
-
-char line_buffer[LINE_BUFFER_SIZE][LINE_SIZE];
-
-char read_pointer = 0;
-char write_pointer = 0;
-char valid_lines = 0;
-
-char first_line_found = 0;
+uint8_t gps_received_byte = 0;
 
 RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
@@ -114,8 +103,9 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart1, &received_byte, sizeof(received_byte));
   HAL_RTC_SetTime(&hrtc, &current_time, RTC_FORMAT_BCD);
+  GPS_parser_init();
+  HAL_UART_Receive_IT(&huart1, &gps_received_byte, sizeof(gps_received_byte));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -125,19 +115,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if (valid_lines > 0)
-    {
-      if(strncmp(line_buffer[read_pointer], "$GNZDA", (unsigned int) 6) == 0) {
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-        CDC_Transmit_FS(line_buffer[read_pointer], strlen(line_buffer[read_pointer]));
-        HAL_RTC_GetTime(&hrtc, &current_time, RTC_FORMAT_BIN);
-        HAL_RTC_GetDate(&hrtc, &current_date, RTC_FORMAT_BIN);
-        current_time_str[0] = '\0';
-        sprintf(current_time_str,"%d - %d - %d\n", current_time.Hours, current_time.Minutes, current_time.Seconds);
-        CDC_Transmit_FS(current_time_str, strlen(current_time_str));
-      }
-      remove_valid_line();
-    }
+	  GPS_check_for_time_line();
 	  //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	  //HAL_Delay(500);
   }
@@ -318,62 +296,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart1) {
-
-    if (!first_line_found) {
-
-      if (received_byte == '\n') {
-        first_line_found = 1;
-        line_buffer[write_pointer][0] = '\0';
-      }
-
-    } else {
-
-      if (received_byte == '\n') {
-    	strncat(line_buffer[write_pointer], &received_byte, 1);
-        add_valid_line();
-        line_buffer[write_pointer][0] = '\0';
-      
-      } else {
-        strncat(line_buffer[write_pointer], &received_byte, 1);
-      }
-
-    }
-    
-    HAL_UART_Receive_IT(&huart1, &received_byte, sizeof(received_byte));
-
+		GPS_parse_single_byte(gps_received_byte);
+		HAL_UART_Receive_IT(&huart1, &gps_received_byte, sizeof(gps_received_byte));
 	}
 }
 
-
-
-
-void add_valid_line()
-{
-  write_pointer++;
-  if (write_pointer >= LINE_BUFFER_SIZE) {
-    write_pointer = 0;
-  }
-  if (valid_lines < LINE_BUFFER_SIZE) {
-    valid_lines++;
-  }
-}
-
-
-
-
-void remove_valid_line()
-{
-  read_pointer++;
-  if (read_pointer >= LINE_BUFFER_SIZE) {
-    read_pointer = 0;
-  }
-  if (valid_lines > 0) {
-    valid_lines--;
-  }
-}
 /* USER CODE END 4 */
 
 /**
