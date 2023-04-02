@@ -34,10 +34,28 @@ extern "C" {
 
 
 
+typedef struct{
+  uint8_t Hours;
+  uint8_t Minutes;
+  uint8_t Seconds;
+  uint16_t mSeconds;
+  uint8_t Day;
+  uint8_t Month;
+  uint16_t Year;
+  int8_t UTC_H_Off;
+  int8_t UTC_M_Off;
+  uint8_t Valid;
+} GPS_DateTime_Structure_t;
+
+
+
+
 
 void GPS_parser_init();
 void GPS_check_for_time_line(void);
-void GPS_parse_single_byte(uint8_t single_byte);
+void GPS_get_last_time_info(GPS_DateTime_Structure_t *_GPS_Last_DateTime);
+void GPS_parse_single_byte(uint8_t _single_byte);
+GPS_DateTime_Structure_t parse_zda_gps_line(char *_time_line);
 
 
 

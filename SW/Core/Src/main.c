@@ -52,6 +52,8 @@ RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
 char current_time_str[20] = "";
 
+GPS_DateTime_Structure_t GPS_Current_Date_Time;
+
 
 /* USER CODE END PV */
 
@@ -116,6 +118,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  GPS_check_for_time_line();
+	  GPS_get_last_time_info(&GPS_Current_Date_Time);
 	  //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 	  //HAL_Delay(500);
   }
