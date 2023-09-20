@@ -49,11 +49,7 @@ void GPS_check_for_time_line()
 {
   if (valid_lines > 0)
   {
-    if (strncmp(line_buffer[read_pointer] + 3, "ZDA", (unsigned int) 3) == 0)
-    {
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    }
-    remove_valid_line();
   }
 }
 
@@ -67,16 +63,11 @@ void GPS_get_last_time_info(GPS_DateTime_Structure_t *_GPS_Last_DateTime)
   time_line_buffer[0] = '\0';
   GPS_DateTime_Structure_t GPS_Date_Time_buffer;
 
-  // Run through the saved lines to find the last time line sent.
-  // Only the latest will be used .
   if (valid_lines > 0)
   {
-    if (strncmp(line_buffer[read_pointer] + 3, "ZDA", (unsigned int) 3) == 0)
-    {
-      // Time line found. Move it to the buffer.
-      strcpy(time_line_buffer, line_buffer[read_pointer]);
-    }
-    remove_valid_line();
+	// Time line found. Move it to the buffer.
+	strcpy(time_line_buffer, line_buffer[read_pointer]);
+	remove_valid_line();
   }
 
   // Check if time lines have been found
@@ -108,7 +99,10 @@ void GPS_parse_single_byte(uint8_t _single_byte)
 	} else {
 	  if (_single_byte == '\n') {
 		strncat(line_buffer[write_pointer], &_single_byte, 1);
-		add_valid_line();
+		// Check if it is a ZDA line
+		if (strncmp(line_buffer[read_pointer] + 3, "ZDA", (unsigned int) 3) == 0) {
+			add_valid_line();
+		}
 		line_buffer[write_pointer][0] = '\0';
 	  } else {
 		strncat(line_buffer[write_pointer], &_single_byte, 1);
@@ -126,9 +120,11 @@ GPS_DateTime_Structure_t parse_zda_gps_line(char *_time_line)
   GPS_DateTime_Structure_t DateTime_Raw = {0xFF, 0xFF, 0xFF, 0xFFFF, 0xFF, 0xFF, 0xFFFF, 0xFF, 0xFF, 0};
 
   char time_string[15] = "";
+  char prova[40] = "";
 
+  CDC_Transmit_FS(_time_line, strlen(_time_line));
   // Parse the string using sscanf.
-  sscanf(_time_line,"%*s,%s,%d,%d,%d,%d,%d*%*s",
+  sscanf(_time_line,"%*6s,%10s,%2u,%2u,%4u,%2u,%2u*%*s",
       time_string,
       &(DateTime_Raw.Day),
       &(DateTime_Raw.Month),
@@ -137,11 +133,14 @@ GPS_DateTime_Structure_t parse_zda_gps_line(char *_time_line)
       &(DateTime_Raw.UTC_M_Off));
 
   // Parse the time_string using sscanf.
-  sscanf(time_string, "%2d%2d%2d.%d",
+  sscanf(time_string, "%2u%2u%2u.%3u",
       &(DateTime_Raw.Hours),
       &(DateTime_Raw.Minutes),
       &(DateTime_Raw.Seconds),
       &(DateTime_Raw.mSeconds));
+
+  sprintf(prova, "TIME:%u:%u:%u DATE:%u:%u:%u\n\r", DateTime_Raw.Hours, DateTime_Raw.Minutes, DateTime_Raw.Seconds, DateTime_Raw.Day,DateTime_Raw.Month, DateTime_Raw.Year);
+  CDC_Transmit_FS(prova, strlen(prova));
 
   // Check validity of the data read.
   uint8_t hours_valid = (DateTime_Raw.Hours >= 0) && (DateTime_Raw.Day <= 23);
