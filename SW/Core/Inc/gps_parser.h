@@ -28,7 +28,7 @@ extern "C" {
 
 
 /* Defines -------------------------------------------------------------------*/
-#define LINE_BUFFER_SIZE 10
+#define LINE_BUFFER_SIZE 5
 #define LINE_SIZE 100
 
 
@@ -52,10 +52,9 @@ typedef struct{
 
 
 void GPS_parser_init();
-void GPS_check_for_time_line(void);
-void GPS_get_last_time_info(GPS_DateTime_Structure_t *_GPS_Last_DateTime);
+void GPS_get_last_time_info(struct tm *_GPS_last_date_time, uint8_t *_valid);
 void GPS_parse_single_byte(uint8_t _single_byte);
-GPS_DateTime_Structure_t parse_zda_gps_line(char *_time_line);
+struct tm parse_zda_gps_line(char *_time_line);
 
 
 

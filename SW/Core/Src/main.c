@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -42,6 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 RTC_HandleTypeDef hrtc;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -50,9 +50,10 @@ uint8_t gps_received_byte = 0;
 
 RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
-char current_time_str[20] = "";
+char current_time_str[40] = "";
 
-GPS_DateTime_Structure_t GPS_Current_Date_Time;
+struct tm GPS_Current_Date_Time;
+uint8_t GPS_Valid = 0;
 
 
 /* USER CODE END PV */
@@ -117,10 +118,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  GPS_check_for_time_line();
-	  GPS_get_last_time_info(&GPS_Current_Date_Time);
-	  //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-	  //HAL_Delay(500);
+	  GPS_get_last_time_info(&GPS_Current_Date_Time, &GPS_Valid);
+
+	  if (GPS_Valid == 1) {
+		  // Print on Serial
+		  time_t GPS_Posix_time = mktime(&GPS_Current_Date_Time);
+		  sprintf(current_time_str, "The current date/time is: %s\n\r", ctime(&GPS_Posix_time));
+		  CDC_Transmit_FS(current_time_str, strlen(current_time_str));
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -185,6 +190,7 @@ static void MX_RTC_Init(void)
 
   RTC_TimeTypeDef sTime = {0};
   RTC_DateTypeDef sDate = {0};
+  RTC_AlarmTypeDef sAlarm = {0};
 
   /* USER CODE BEGIN RTC_Init 1 */
 
@@ -210,9 +216,9 @@ static void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x0;
-  sTime.Minutes = 0x0;
-  sTime.Seconds = 0x0;
+  sTime.Hours = 0x1;
+  sTime.Minutes = 0x2;
+  sTime.Seconds = 0x1;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
@@ -225,6 +231,24 @@ static void MX_RTC_Init(void)
   sDate.Year = 0x0;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Enable the Alarm A
+  */
+  sAlarm.AlarmTime.Hours = 0x0;
+  sAlarm.AlarmTime.Minutes = 0x0;
+  sAlarm.AlarmTime.Seconds = 0x1;
+  sAlarm.AlarmTime.SubSeconds = 0x0;
+  sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+  sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
+  sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
+  sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+  sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+  sAlarm.AlarmDateWeekDay = 0x1;
+  sAlarm.Alarm = RTC_ALARM_A;
+  if (HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK)
   {
     Error_Handler();
   }
