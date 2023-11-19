@@ -28,12 +28,10 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include "usb_device.h"
-#include "gps_parser.h"
-#include <time.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "gps_parser.h"
 
 /* USER CODE END Includes */
 
@@ -52,6 +50,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -60,6 +60,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LATCH_EN_Pin GPIO_PIN_14
+#define LATCH_EN_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
