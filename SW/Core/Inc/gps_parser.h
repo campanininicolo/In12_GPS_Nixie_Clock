@@ -25,6 +25,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <time.h>
 
 
 /* Defines -------------------------------------------------------------------*/
@@ -52,9 +53,9 @@ typedef struct{
 
 
 void GPS_parser_init();
-void GPS_get_last_time_info(struct tm *_GPS_last_date_time, uint8_t *_valid);
+void GPS_get_last_time_info(time_t *_GPS_last_date_time, uint8_t *_valid);
 void GPS_parse_single_byte(uint8_t _single_byte);
-struct tm parse_zda_gps_line(char *_time_line);
+time_t parse_zda_gps_line(char *_time_line);
 
 
 

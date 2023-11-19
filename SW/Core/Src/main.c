@@ -52,7 +52,7 @@ RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
 char current_time_str[40] = "";
 
-struct tm GPS_Current_Date_Time;
+time_t GPS_Current_Date_Time;
 uint8_t GPS_Valid = 0;
 
 
@@ -121,9 +121,10 @@ int main(void)
 	  GPS_get_last_time_info(&GPS_Current_Date_Time, &GPS_Valid);
 
 	  if (GPS_Valid == 1) {
+		  // Apply correction
+		  GPS_Current_Date_Time += 2*3600;
 		  // Print on Serial
-		  time_t GPS_Posix_time = mktime(&GPS_Current_Date_Time);
-		  sprintf(current_time_str, "The current date/time is: %s\n\r", ctime(&GPS_Posix_time));
+		  sprintf(current_time_str, "The current date/time is: %s\n\r", ctime(&GPS_Current_Date_Time));
 		  CDC_Transmit_FS(current_time_str, strlen(current_time_str));
 	  }
   }
@@ -139,7 +140,8 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage
+  /** Configure the main internal regulator output vo
+   * ltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);

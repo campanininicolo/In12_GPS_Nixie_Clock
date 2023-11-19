@@ -71,7 +71,7 @@ void remove_valid_line()
 
 
 
-void GPS_get_last_time_info(struct tm *_GPS_last_date_time, uint8_t *_valid)
+void GPS_get_last_time_info(time_t *_GPS_last_date_time, uint8_t *_valid)
 {
   // Buffer to store the time line found.
   char time_line_buffer[LINE_SIZE];
@@ -107,18 +107,23 @@ void GPS_get_last_time_info(struct tm *_GPS_last_date_time, uint8_t *_valid)
 void GPS_parse_single_byte(uint8_t _single_byte)
 {
 	if (!first_line_found) {
+
 	  if (_single_byte == '\n') {
       first_line_found = 1;
       line_buffer[write_pointer][0] = '\0';
 	  }
+
 	} else {
+
 	  if (_single_byte == '\n') {
       strncat(line_buffer[write_pointer], &_single_byte, 1);
       // Check if it is a ZDA line. Discard otherwise.
       if (strncmp(line_buffer[read_pointer] + 3, "ZDA", (unsigned int) 3) == 0) {
         add_valid_line();
       }
+
 		line_buffer[write_pointer][0] = '\0';
+
 	  } else {
 		  strncat(line_buffer[write_pointer], &_single_byte, 1);
 	  }
@@ -129,7 +134,7 @@ void GPS_parse_single_byte(uint8_t _single_byte)
 
 
 
-struct tm parse_zda_gps_line(char *_time_line)
+time_t parse_zda_gps_line(char *_time_line)
 {
   // Time structure for data
   struct tm GPS_Date_Time_buffer;
@@ -154,11 +159,12 @@ struct tm parse_zda_gps_line(char *_time_line)
       &(GPS_Date_Time_buffer.tm_mon),
       &(GPS_Date_Time_buffer.tm_year));
 
-  // Fix the date
+  // Fix the date according to POSIX time
   GPS_Date_Time_buffer.tm_year -= 1900;
   GPS_Date_Time_buffer.tm_mon -= 1;
 
-  return(GPS_Date_Time_buffer);
+  // Return POSIZ time
+  return(mktime(&GPS_Date_Time_buffer));
 }
 
 
