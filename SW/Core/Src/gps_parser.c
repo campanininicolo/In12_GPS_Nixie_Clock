@@ -16,132 +16,85 @@
   */
 
 #include "gps_parser.h"
-#include "string.h"
 
 
 
 
 
-char received_byte = 0;
-char line_buffer[LINE_BUFFER_SIZE][LINE_SIZE];
-char read_pointer = 0;
-char write_pointer = 0;
-char valid_lines = 0;
-char first_line_found = 0;
+// Global UART and DMA handlers for GPS
+UART_HandleTypeDef *GPS_huart;
+DMA_HandleTypeDef *GPS_hdma_usart_rx;
+
+// Global variable containint the GPS buffers.
+GPS_buffer_struct_t GPS_buffer_struct;
+// Global variable to hold datetime extracted from GPS.
+GPS_datetime_struct_t GPS_datetime_struct;
 
 
 
 
-void GPS_parser_init()
+
+void GPS_Init(UART_HandleTypeDef *_huart, DMA_HandleTypeDef *_hdma_usart_rx)
 {
-	received_byte = 0;
-	read_pointer = 0;
-	write_pointer = 0;
-	valid_lines = 0;
-	first_line_found = 0;
+  // Init the GPS buffer scructure
+  GPS_buffer_struct.active_buffer = 0;
+  GPS_buffer_struct.buffer_status[0] = 0;
+  GPS_buffer_struct.buffer_status[1] = 0;
+  GPS_buffer_struct.buffer_size[0] = 0;
+  GPS_buffer_struct.buffer_size[1] = 0;
+  // Init the GPS_datetime_struct as NOT-valid
+  GPS_datetime_struct.unixtime = 0;
+  GPS_datetime_struct.valid = 0;
+  // Init the internal UART handler
+  GPS_huart = _huart;
+  GPS_hdma_usart_rx = _hdma_usart_rx;
+  // Init the Blue LED
+  HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
 }
 
 
 
-void add_valid_line()
+
+void GPS_Start()
 {
-  write_pointer++;
-  if (write_pointer >= LINE_BUFFER_SIZE) {
-    write_pointer = 0;
-  }
-  if (valid_lines < LINE_BUFFER_SIZE) {
-    valid_lines++;
-  }
-}
-
-
-
-void remove_valid_line()
-{
-  read_pointer++;
-  if (read_pointer >= LINE_BUFFER_SIZE) {
-    read_pointer = 0;
-  }
-  if (valid_lines > 0) {
-    valid_lines--;
-  }
+  HAL_UARTEx_ReceiveToIdle_DMA(GPS_huart, GPS_buffer_struct.buffer[GPS_buffer_struct.active_buffer], UART_BUFFER_SIZE-1);
+  __HAL_DMA_DISABLE_IT(GPS_hdma_usart_rx, DMA_IT_HT);
 }
 
 
 
 
 
-void GPS_get_last_time_info(time_t *_GPS_last_date_time, uint8_t *_valid)
+GPS_datetime_struct_t GPS_Read_Datetime()
 {
-  // Buffer to store the time line found.
-  char time_line_buffer[LINE_SIZE];
-  time_line_buffer[0] = '\0';
+  return(GPS_datetime_struct);
+}
 
-  if (valid_lines > 0) {
-    // Time line found. Move it to the buffer.
-    strcpy(time_line_buffer, line_buffer[read_pointer]);
-    remove_valid_line();
-    // Toggle LED.
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    // Check if time lines have been found and if the lenght is coherent with valid line
-    if (strlen(time_line_buffer) > 23) {
-      // A time line has been found.
-      // Parse the time line.
-      *(_GPS_last_date_time) = parse_zda_gps_line(time_line_buffer);
-      *_valid = 1;
 
-    } else {
-      *_valid = 0;
-    }
 
-  } else {
-     *_valid = 0;
+
+
+void GPS_Parse_ZDA_Line(char *_time_line)
+{
+  // Initialize output datetime structure as NOT-valid 
+  GPS_datetime_struct.valid = 0;
+
+  char *line_end = NULL;
+  line_end = strchr(_time_line, '\n');
+  
+  // Exit if no end is found
+  if (!line_end) {
+    return;
   }
 
-}
+  // Exit if the line is too short
+  if (line_end - _time_line <= 23) {
+    return;
+  }
 
-
-
-
-
-void GPS_parse_single_byte(uint8_t _single_byte)
-{
-	if (!first_line_found) {
-
-	  if (_single_byte == '\n') {
-      first_line_found = 1;
-      line_buffer[write_pointer][0] = '\0';
-	  }
-
-	} else {
-
-	  if (_single_byte == '\n') {
-      strncat(line_buffer[write_pointer], &_single_byte, 1);
-      // Check if it is a ZDA line. Discard otherwise.
-      if (strncmp(line_buffer[read_pointer] + 3, "ZDA", (unsigned int) 3) == 0) {
-        add_valid_line();
-      }
-
-		line_buffer[write_pointer][0] = '\0';
-
-	  } else {
-		  strncat(line_buffer[write_pointer], &_single_byte, 1);
-	  }
-	}
-}
-
-
-
-
-
-time_t parse_zda_gps_line(char *_time_line)
-{
-  // Time structure for data
   struct tm GPS_Date_Time_buffer;
-
   char time_string[15] = "";
   char date_string[15] = "";
-  char prova[40] = "";
 
   // Extract the time line and the date line
   strncpy(time_string, _time_line + 7, 10);
@@ -163,8 +116,88 @@ time_t parse_zda_gps_line(char *_time_line)
   GPS_Date_Time_buffer.tm_year -= 1900;
   GPS_Date_Time_buffer.tm_mon -= 1;
 
-  // Return POSIZ time
-  return(mktime(&GPS_Date_Time_buffer));
+  // Return POSIX time and valid flag
+  GPS_datetime_struct.unixtime = mktime(&GPS_Date_Time_buffer);
+  GPS_datetime_struct.valid = 1;
+}
+
+
+
+
+
+void GPS_Update_Data()
+{
+  // Loop in the two buffers to find the one used.
+  for (uint8_t i = 0; i < 2; i++) {
+
+    if (GPS_buffer_struct.buffer_status[i] == 1) {
+
+      // Set the buffer as NOT-valid
+      GPS_buffer_struct.buffer_status[i] = 0;
+
+      // Set the datetime structure as NOT-valid 
+      GPS_datetime_struct.valid = 0;
+
+      // Proceed only if the buffer starts with "$"
+      if (GPS_buffer_struct.buffer[i][0] != '$') {
+        return;
+      }
+
+      // Loop through the buffer looking for the different messages.
+      uint8_t end_reached = 0;
+      char *time_line = NULL;
+      char *current_pnt = GPS_buffer_struct.buffer[i];
+      char *next_pnt = NULL;
+
+      while (end_reached == 0) {
+        // Search for the message start character
+        next_pnt = strchr(current_pnt, '$');
+
+        if (!next_pnt) {
+          end_reached = 1;
+          // Exit
+        } else {
+          // Look if the ZDA line is found
+          if (strncmp(next_pnt + 3, "ZDA", 3) == 0) {
+            time_line = next_pnt;
+          }
+          // TODO: Add other lines to be found 
+
+          // Update pointers to advance in the buffer
+          current_pnt = next_pnt+1;
+        }
+      }
+
+      // Parse the ZDA line if found
+      if (time_line) {
+        GPS_Parse_ZDA_Line(time_line);
+      }
+
+      // TODO: Add parsing of other lines
+    }
+  }
+}
+
+
+
+
+
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	if (huart == GPS_huart) {
+    // Toggle LED
+    HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
+    // Set the buffer size and add the termination character
+    GPS_buffer_struct.buffer[GPS_buffer_struct.active_buffer][Size] = '\0';
+    GPS_buffer_struct.buffer_size[GPS_buffer_struct.active_buffer] = Size+1;
+    // Set the flag so that data can be read from the buffer
+    GPS_buffer_struct.buffer_status[GPS_buffer_struct.active_buffer] = 1;
+    // Change active buffer
+    GPS_buffer_struct.active_buffer = !GPS_buffer_struct.active_buffer;
+    // Relaunch the UART receiver
+    GPS_Start();
+	}
 }
 
 

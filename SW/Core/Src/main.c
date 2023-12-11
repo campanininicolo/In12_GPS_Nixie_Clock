@@ -41,6 +41,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi2;
@@ -48,30 +50,28 @@ SPI_HandleTypeDef hspi2;
 TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart1;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 
-uint8_t gps_received_byte = 0;
 
+
+// TODO: Remove and clean here
 RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
-char current_time_str[40] = "";
-
-time_t GPS_Current_Date_Time;
-uint8_t GPS_Valid = 0;
-
+char current_time_str[60] = "";
 uint8_t prova_spi[8] = {0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D};
-
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 void add_valid_line(void);
 void remove_valid_line(void);
@@ -111,17 +111,31 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   MX_RTC_Init();
   MX_SPI2_Init();
   MX_TIM1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+
+  // Initiliaze the GPS system
+  GPS_Init(&huart1, &hdma_usart1_rx);
+  // Initialize the Nixie display.
+  Nixie_init(&hspi2);
+
+  // TODO: Add PWM control here
+
+
+
+  // TODO: Remove and clean here
   //HAL_RTC_SetTime(&hrtc, &current_time, RTC_FORMAT_BCD);
-  GPS_parser_init();
-  HAL_UART_Receive_IT(&huart1, &gps_received_byte, sizeof(gps_received_byte));
-  HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_RESET);
-  HAL_SPI_Transmit_IT(&hspi2, prova_spi, 8);
+  //HAL_SPI_Transmit_IT(&hspi2, prova_spi, 8);
+
+  // Start the GPS system
+  GPS_Start();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -131,15 +145,21 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  GPS_get_last_time_info(&GPS_Current_Date_Time, &GPS_Valid);
 
-	  if (GPS_Valid == 1) {
-		  // Apply correction
-		  GPS_Current_Date_Time += 2*3600;
-		  // Print on Serial
-		  sprintf(current_time_str, "The current date/time is: %s\n\r", ctime(&GPS_Current_Date_Time));
-		  CDC_Transmit_FS(current_time_str, strlen(current_time_str));
-	  }
+    // Continuosly update the GPS data.
+    GPS_Update_Data();
+
+
+    GPS_datetime_struct_t GPS_data;
+    GPS_data = GPS_Read_Datetime();
+    if (GPS_data.valid == 1) {
+      sprintf(current_time_str, "The current date/time is: %s\r\n", ctime(&GPS_data.unixtime));
+      CDC_Transmit_FS(current_time_str, strlen(current_time_str));
+    } else {
+      CDC_Transmit_FS("GPS-TIME Invalid\r\n", strlen("GPS-TIME Invalid\r\n"));
+    }
+
+    HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
@@ -188,6 +208,58 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -401,7 +473,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -419,6 +491,22 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -432,28 +520,28 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, HV_OFF_Pin|LATCH_EN_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pin : LED_BLUE_Pin */
+  GPIO_InitStruct.Pin = LED_BLUE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LATCH_EN_Pin */
-  GPIO_InitStruct.Pin = LATCH_EN_Pin;
+  /*Configure GPIO pins : HV_OFF_Pin LATCH_EN_Pin */
+  GPIO_InitStruct.Pin = HV_OFF_Pin|LATCH_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LATCH_EN_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -461,23 +549,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if (huart == &huart1) {
-		GPS_parse_single_byte(gps_received_byte);
-		HAL_UART_Receive_IT(&huart1, &gps_received_byte, sizeof(gps_received_byte));
-	}
-}
-
-
-
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	if (hspi == &hspi2) {
-		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_RESET);
-	}
-}
 
 /* USER CODE END 4 */
 

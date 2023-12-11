@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
-  * @file           : gps_parser.h
-  * @brief          : Header for gps_parser.c file.
+  * @file           : nixie_display.h
+  * @brief          : Header for nixie_display.c file.
   ******************************************************************************
   * @attention
   *
@@ -16,8 +16,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __GPS_PARSER_H
-#define __GPS_PARSER_H
+#ifndef __NIXIE_DISPLAY_H
+#define __NIXIE_DISPLAY_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,31 +31,15 @@ extern "C" {
 /* Types ---------------------------------------------------------------------*/
 
 
-#define UART_BUFFER_SIZE 1024
-
-typedef struct{
-  uint8_t buffer[2][UART_BUFFER_SIZE];
-  uint8_t active_buffer;
-  uint8_t buffer_status[2]; 
-  uint16_t buffer_size[2];
-}GPS_buffer_struct_t;
-
-
-
-typedef struct{
-  time_t unixtime;
-  uint8_t valid;
-} GPS_datetime_struct_t;
+#define SPI_BUFFER_SIZE 8
 
 
 
 
-void GPS_Init(UART_HandleTypeDef *_huart, DMA_HandleTypeDef *_hdma_usart_rx);
-void GPS_Start();
-GPS_datetime_struct_t GPS_Read_Datetime();
-
-void GPS_Update_Data();
-
+void Nixie_init(SPI_HandleTypeDef *_hspi);
+void Nixie_enable_HV();
+void Nixie_disable_HV();
+void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds);
 
 
 

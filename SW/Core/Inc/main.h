@@ -32,6 +32,10 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "gps_parser.h"
+#include "nixie_display.h"
+#include "time.h"
+#include "stdint.h"
+#include "string.h"
 
 /* USER CODE END Includes */
 
@@ -60,6 +64,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LED_BLUE_Pin GPIO_PIN_13
+#define LED_BLUE_GPIO_Port GPIOC
+#define HV_OFF_Pin GPIO_PIN_12
+#define HV_OFF_GPIO_Port GPIOB
 #define LATCH_EN_Pin GPIO_PIN_14
 #define LATCH_EN_GPIO_Port GPIOB
 
