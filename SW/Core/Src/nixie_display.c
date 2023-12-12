@@ -74,17 +74,14 @@ void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds)
   uint32_t driver_2 = 0;
 
   // Clamp values
-  if (_hours > 23) {
-    _hours = 99;
-  }
+  if (_hours > 99)
+	_hours = 99;
 
-  if (_minutes > 59) {
-    _minutes = 99;
-  }
+  if (_minutes > 99)
+	_minutes = 99;
 
-  if (_seconds > 59) {
-    _seconds = 99;
-  }
+  if (_seconds > 99)
+	_seconds = 99;
 
   uint8_t hours_dec = _hours / 10;
   uint8_t hours_uni = _hours - (hours_dec * 10);
@@ -136,6 +133,8 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	if (hspi == Nixie_hspi) {
     // Toggle the Latch pin
+		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_RESET);
 	}

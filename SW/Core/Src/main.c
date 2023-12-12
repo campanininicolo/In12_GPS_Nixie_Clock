@@ -48,6 +48,7 @@ RTC_HandleTypeDef hrtc;
 SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim11;
 
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
@@ -60,7 +61,7 @@ DMA_HandleTypeDef hdma_usart1_rx;
 RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
 char current_time_str[60] = "";
-uint8_t prova_spi[8] = {0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D};
+uint8_t prova_h, prova_m, prova_s = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +73,7 @@ static void MX_RTC_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM11_Init(void);
 /* USER CODE BEGIN PFP */
 void add_valid_line(void);
 void remove_valid_line(void);
@@ -118,9 +120,10 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM1_Init();
   MX_ADC1_Init();
+  MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
 
-  // Initiliaze the GPS system
+  // Initiliaze the GPS system.
   GPS_Init(&huart1, &hdma_usart1_rx);
   // Initialize the Nixie display.
   Nixie_init(&hspi2);
@@ -135,6 +138,8 @@ int main(void)
 
   // Start the GPS system
   GPS_Start();
+  // Launch the TIM11 as interrupt.
+  HAL_TIM_Base_Start_IT(&htim11);
 
   /* USER CODE END 2 */
 
@@ -458,6 +463,37 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief TIM11 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM11_Init(void)
+{
+
+  /* USER CODE BEGIN TIM11_Init 0 */
+
+  /* USER CODE END TIM11_Init 0 */
+
+  /* USER CODE BEGIN TIM11_Init 1 */
+
+  /* USER CODE END TIM11_Init 1 */
+  htim11.Instance = TIM11;
+  htim11.Init.Prescaler = 60000 - 1;
+  htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim11.Init.Period = 40 - 1;
+  htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM11_Init 2 */
+
+  /* USER CODE END TIM11_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -548,6 +584,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+// Update display callback
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  // Check which version of the timer triggered this callback and toggle LED
+  if (htim == &htim11 )
+  {
+	prova_h = rand() % 100;
+	prova_m = rand() % 100;
+	prova_s = rand() % 100;
+    Nixie_update_display(prova_h, prova_m, prova_s);
+  }
+}
 
 
 /* USER CODE END 4 */
