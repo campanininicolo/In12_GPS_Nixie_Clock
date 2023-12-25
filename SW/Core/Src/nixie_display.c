@@ -23,6 +23,10 @@
 
 // Global SPI handler for Nixie display
 SPI_HandleTypeDef *Nixie_hspi;
+// Global TIM handler for Nixie display
+TIM_HandleTypeDef *Nixie_htim;
+// Global variable for PWM channel
+uint32_t Nixie_PWM_channel = 0;
 
 // Buffer for SPI communication 
 uint8_t Nixie_SPI_buffer[SPI_BUFFER_SIZE];
@@ -31,9 +35,16 @@ uint8_t Nixie_SPI_buffer[SPI_BUFFER_SIZE];
 
 
 
-void Nixie_init(SPI_HandleTypeDef *_hspi)
+void Nixie_init(SPI_HandleTypeDef *_hspi, TIM_HandleTypeDef *_htim, uint32_t _PWM_channel)
 {
-  // Disable HV generation
+  // Save the SPI handler
+  Nixie_hspi = _hspi;
+  // Save the PWM Timer handler
+  Nixie_htim = _htim;
+  // Save the PWM Timer channel
+  Nixie_PWM_channel = _PWM_channel;
+
+  // Disable HV
   Nixie_disable_HV();
   // Set Latch to default state
   HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_RESET);
@@ -41,8 +52,11 @@ void Nixie_init(SPI_HandleTypeDef *_hspi)
   for (uint8_t i = 0; i < SPI_BUFFER_SIZE; i++) {
     Nixie_SPI_buffer[i] = 0;
   }
-  // Save the SPI handler
-  Nixie_hspi = _hspi;
+
+  // Start the PWM generation
+  HAL_TIM_PWM_Start(Nixie_htim, Nixie_PWM_channel);
+  // Set the PWM duty cycle to zero (safety)
+  __HAL_TIM_SET_COMPARE(Nixie_htim, Nixie_PWM_channel, 0);
 }
 
 
@@ -51,6 +65,7 @@ void Nixie_init(SPI_HandleTypeDef *_hspi)
 
 void Nixie_enable_HV()
 {
+  // Turn-off the GPIO
   HAL_GPIO_WritePin(HV_OFF_GPIO_Port, HV_OFF_Pin, GPIO_PIN_RESET);
 }
 
@@ -60,6 +75,7 @@ void Nixie_enable_HV()
 
 void Nixie_disable_HV()
 {
+  // Turn-on the GPIO
   HAL_GPIO_WritePin(HV_OFF_GPIO_Port, HV_OFF_Pin, GPIO_PIN_SET);
 }
 
@@ -75,13 +91,13 @@ void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds)
 
   // Clamp values
   if (_hours > 99)
-	_hours = 99;
+    _hours = 99;
 
   if (_minutes > 99)
-	_minutes = 99;
+	  _minutes = 99;
 
   if (_seconds > 99)
-	_seconds = 99;
+	  _seconds = 99;
 
   uint8_t hours_dec = _hours / 10;
   uint8_t hours_uni = _hours - (hours_dec * 10);
@@ -129,10 +145,23 @@ void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds)
 
 
 
+void Nixie_set_brightness(uint8_t _brightness)
+{
+  // Clamp brightness value
+  if (_brightness > 99)
+    _brightness = 99;
+  // Set the PWM register
+  __HAL_TIM_SET_COMPARE(Nixie_htim, Nixie_PWM_channel, _brightness);
+}
+
+
+
+
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	if (hspi == Nixie_hspi) {
-    // Toggle the Latch pin
+    // Toggle the Latch pin (multiple times to have correct timing)
 		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LATCH_EN_GPIO_Port, LATCH_EN_Pin, GPIO_PIN_SET);

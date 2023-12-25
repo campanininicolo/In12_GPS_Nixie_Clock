@@ -123,10 +123,10 @@ int main(void)
   MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
 
-  // Initiliaze the GPS system.
+  // Initialize the GPS system.
   GPS_Init(&huart1, &hdma_usart1_rx);
   // Initialize the Nixie display.
-  Nixie_init(&hspi2);
+  Nixie_init(&hspi2, &htim1, TIM_CHANNEL_1);
 
   // TODO: Add PWM control here
 
@@ -138,8 +138,12 @@ int main(void)
 
   // Start the GPS system
   GPS_Start();
-  // Launch the TIM11 as interrupt.
+  // Launch the TIM11 as interrupt. Used to update the nixie display
   HAL_TIM_Base_Start_IT(&htim11);
+  // Turn-on the HV 
+  Nixie_enable_HV();
+  // Set Nixie brightness to 50%
+  Nixie_set_brightness(50);
 
   /* USER CODE END 2 */
 
@@ -408,9 +412,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 60-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
+  htim1.Init.Period = 100-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -423,7 +427,7 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -433,14 +437,14 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -590,9 +594,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Check which version of the timer triggered this callback and toggle LED
   if (htim == &htim11 )
   {
-	prova_h = rand() % 100;
-	prova_m = rand() % 100;
-	prova_s = rand() % 100;
+	prova_h = 12;
+	prova_m = 34;
+	prova_s = 56;
     Nixie_update_display(prova_h, prova_m, prova_s);
   }
 }

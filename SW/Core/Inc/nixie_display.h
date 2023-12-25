@@ -36,10 +36,13 @@ extern "C" {
 
 
 
-void Nixie_init(SPI_HandleTypeDef *_hspi);
+
+void Nixie_init(SPI_HandleTypeDef *_hspi, TIM_HandleTypeDef *_htim, uint32_t _PWM_channel);
 void Nixie_enable_HV();
 void Nixie_disable_HV();
 void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds);
+void Nixie_set_brightness(uint8_t _brightness);
+
 
 
 
