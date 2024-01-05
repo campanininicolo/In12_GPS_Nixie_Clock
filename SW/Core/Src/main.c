@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "time.h"
 
 /* USER CODE END Includes */
 
@@ -61,7 +62,7 @@ DMA_HandleTypeDef hdma_usart1_rx;
 RTC_TimeTypeDef current_time;
 RTC_DateTypeDef current_date;
 char current_time_str[60] = "";
-uint8_t prova_h, prova_m, prova_s = 0;
+uint8_t number = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -143,7 +144,7 @@ int main(void)
   // Turn-on the HV 
   Nixie_enable_HV();
   // Set Nixie brightness to 50%
-  Nixie_set_brightness(50);
+  Nixie_set_brightness(80);
 
   /* USER CODE END 2 */
 
@@ -167,7 +168,11 @@ int main(void)
     } else {
       CDC_Transmit_FS("GPS-TIME Invalid\r\n", strlen("GPS-TIME Invalid\r\n"));
     }
-
+    if (number >= 9) {
+      number = 0;
+    } else {
+      number++;
+    }
     HAL_Delay(500);
   }
   /* USER CODE END 3 */
@@ -412,7 +417,7 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 60-1;
+  htim1.Init.Prescaler = 30-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 100-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -594,10 +599,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Check which version of the timer triggered this callback and toggle LED
   if (htim == &htim11 )
   {
-	prova_h = 12;
-	prova_m = 34;
-	prova_s = 56;
-    Nixie_update_display(prova_h, prova_m, prova_s);
+    uint8_t value_h, value_m, value_s = 0;
+    GPS_datetime_struct_t GPS_data;
+    // Get GPS Datetime info
+    GPS_data = GPS_Read_Datetime();
+
+    // Check if valid
+    if (GPS_data.valid == 1) {
+      // Convert to struct tm
+      struct tm buf;
+      gmtime_r(&GPS_data.unixtime, &buf);
+      // Extract values
+      value_h = buf.tm_hour;
+      value_m = buf.tm_min;
+      value_s = buf.tm_sec;
+    } else {
+      // Get defaults otherwise
+      value_h = number * 10 + number;
+      value_m = value_h;
+      value_s = value_h;
+    }
+    Nixie_update_display(value_h, value_m, value_s);
   }
 }
 
