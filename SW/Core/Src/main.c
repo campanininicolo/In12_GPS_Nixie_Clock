@@ -144,7 +144,7 @@ int main(void)
   // Turn-on the HV 
   Nixie_enable_HV();
   // Set Nixie brightness to 50%
-  Nixie_set_brightness(80);
+  Nixie_set_brightness(10);
 
   /* USER CODE END 2 */
 
@@ -444,7 +444,7 @@ static void MX_TIM1_Init(void)
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
