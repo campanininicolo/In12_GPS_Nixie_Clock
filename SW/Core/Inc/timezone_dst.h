@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
-  * @file           : nixie_display.h
-  * @brief          : Header for nixie_display.c file.
+  * @file           : timezone_dst.h
+  * @brief          : Header for timezone_dst.c file.
   ******************************************************************************
   * @attention
   *
@@ -16,8 +16,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __NIXIE_DISPLAY_H
-#define __NIXIE_DISPLAY_H
+#ifndef __TIMEZONE_DST_H
+#define __TIMEZONE_DST_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,20 +30,13 @@ extern "C" {
 
 /* Types ---------------------------------------------------------------------*/
 
-
-#define SPI_BUFFER_SIZE 8
-
+#define TIMEZONE_OFFSET_S   3600
 
 
 
 /* Functions -----------------------------------------------------------------*/
-void Nixie_init(SPI_HandleTypeDef *_hspi, TIM_HandleTypeDef *_htim, uint32_t _PWM_channel);
-void Nixie_enable_HV();
-void Nixie_disable_HV();
-void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds);
-void Nixie_set_brightness(uint8_t _brightness);
 
-void Nixie_get_random(uint8_t *_value_h, uint8_t *_value_m, uint8_t *_value_s);
+time_t Apply_timezone_dst(time_t _utc_unixtime);
 
 
 

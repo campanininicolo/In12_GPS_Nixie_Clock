@@ -33,6 +33,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "gps_parser.h"
 #include "nixie_display.h"
+#include "timezone_dst.h"
 #include "time.h"
 #include "stdint.h"
 #include "string.h"

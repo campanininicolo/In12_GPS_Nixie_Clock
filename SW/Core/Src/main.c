@@ -59,8 +59,6 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 
 // TODO: Remove and clean here
-RTC_TimeTypeDef current_time;
-RTC_DateTypeDef current_date;
 char current_time_str[60] = "";
 uint8_t number = 0;
 /* USER CODE END PV */
@@ -128,15 +126,6 @@ int main(void)
   GPS_Init(&huart1, &hdma_usart1_rx);
   // Initialize the Nixie display.
   Nixie_init(&hspi2, &htim1, TIM_CHANNEL_1);
-
-  // TODO: Add PWM control here
-
-
-
-  // TODO: Remove and clean here
-  //HAL_RTC_SetTime(&hrtc, &current_time, RTC_FORMAT_BCD);
-  //HAL_SPI_Transmit_IT(&hspi2, prova_spi, 8);
-
   // Start the GPS system
   GPS_Start();
   // Launch the TIM11 as interrupt. Used to update the nixie display
@@ -144,7 +133,7 @@ int main(void)
   // Turn-on the HV 
   Nixie_enable_HV();
   // Set Nixie brightness to 50%
-  Nixie_set_brightness(10);
+  Nixie_set_brightness(20);
 
   /* USER CODE END 2 */
 
@@ -158,7 +147,7 @@ int main(void)
 
     // Continuosly update the GPS data.
     GPS_Update_Data();
-
+    
 
     GPS_datetime_struct_t GPS_data;
     GPS_data = GPS_Read_Datetime();
@@ -168,6 +157,8 @@ int main(void)
     } else {
       CDC_Transmit_FS("GPS-TIME Invalid\r\n", strlen("GPS-TIME Invalid\r\n"));
     }
+
+   
     if (number >= 9) {
       number = 0;
     } else {
@@ -599,6 +590,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Check which version of the timer triggered this callback and toggle LED
   if (htim == &htim11 )
   {
+    
     uint8_t value_h, value_m, value_s = 0;
     GPS_datetime_struct_t GPS_data;
     // Get GPS Datetime info
@@ -606,19 +598,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     // Check if valid
     if (GPS_data.valid == 1) {
-      // Convert to struct tm
+
+      time_t final_unixtime;
       struct tm buf;
-      gmtime_r(&GPS_data.unixtime, &buf);
-      // Extract values
+      // Apply timezone
+      final_unixtime = Apply_timezone_dst(GPS_data.unixtime);
+      // Convert to struct tm and get values
+      gmtime_r(&final_unixtime, &buf);
       value_h = buf.tm_hour;
       value_m = buf.tm_min;
       value_s = buf.tm_sec;
+
     } else {
-      // Get defaults otherwise
-      value_h = number * 10 + number;
-      value_m = value_h;
-      value_s = value_h;
+
+      // Get Random values otherwise
+      Nixie_get_random(&value_h, &value_m, &value_s);
     }
+
+    // Update the Nixie Display
     Nixie_update_display(value_h, value_m, value_s);
   }
 }

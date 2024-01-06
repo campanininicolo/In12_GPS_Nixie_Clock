@@ -169,3 +169,15 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 	}
 }
 
+
+
+
+
+void Nixie_get_random(uint8_t *_value_h, uint8_t *_value_m, uint8_t *_value_s)
+{
+  // Generate random values
+  *_value_h = rand() % 100;
+  *_value_m = rand() % 100;
+  *_value_s = rand() % 100;
+}
+
