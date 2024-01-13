@@ -590,7 +590,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Check which version of the timer triggered this callback and toggle LED
   if (htim == &htim11 )
   {
-    
+
     uint8_t value_h, value_m, value_s = 0;
     GPS_datetime_struct_t GPS_data;
     // Get GPS Datetime info
@@ -601,7 +601,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
       time_t final_unixtime;
       struct tm buf;
-      // Apply timezone
+      // Apply timezone adn DST
       final_unixtime = Apply_timezone_dst(GPS_data.unixtime);
       // Convert to struct tm and get values
       gmtime_r(&final_unixtime, &buf);

@@ -88,7 +88,7 @@ void GPS_Parse_ZDA_Line(char *_time_line)
   }
 
   // Exit if the line is too short
-  if (line_end - _time_line <= 23) {
+  if (line_end - _time_line <= 26) {
     return;
   }
 

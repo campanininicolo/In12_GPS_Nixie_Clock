@@ -31,6 +31,7 @@ extern "C" {
 /* Types ---------------------------------------------------------------------*/
 
 #define TIMEZONE_OFFSET_S   3600
+#define DST_OFFSET_S        3600
 
 
 
