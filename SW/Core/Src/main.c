@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -59,7 +58,7 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 
 // TODO: Remove and clean here
-char current_time_str[60] = "";
+//char current_time_str[60] = "";
 uint8_t number = 0;
 /* USER CODE END PV */
 
@@ -114,7 +113,6 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART1_UART_Init();
-  MX_USB_DEVICE_Init();
   MX_RTC_Init();
   MX_SPI2_Init();
   MX_TIM1_Init();
@@ -152,10 +150,10 @@ int main(void)
     GPS_datetime_struct_t GPS_data;
     GPS_data = GPS_Read_Datetime();
     if (GPS_data.valid == 1) {
-      sprintf(current_time_str, "The current date/time is: %s\r\n", ctime(&GPS_data.unixtime));
-      CDC_Transmit_FS(current_time_str, strlen(current_time_str));
+      //sprintf(current_time_str, "The current date/time is: %s\r\n", ctime(&GPS_data.unixtime));
+      //CDC_Transmit_FS(current_time_str, strlen(current_time_str));
     } else {
-      CDC_Transmit_FS("GPS-TIME Invalid\r\n", strlen("GPS-TIME Invalid\r\n"));
+      //CDC_Transmit_FS("GPS-TIME Invalid\r\n", strlen("GPS-TIME Invalid\r\n"));
     }
 
    
