@@ -591,11 +591,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     uint8_t value_h, value_m, value_s = 0;
     GPS_datetime_struct_t GPS_data;
+    Nixie_mode_enum_t Nixie_mode;
     // Get GPS Datetime info
     GPS_data = GPS_Read_Datetime();
 
+    // Check the mode for Nixie display. Will be ignored if GPS is not valid
+    Nixie_mode = Nixie_get_mode();
+
     // Check if valid
-    if (GPS_data.valid == 1) {
+    if (GPS_data.valid == 1 && Nixie_mode == NORMAL) {
 
       time_t final_unixtime;
       struct tm buf;

@@ -158,6 +158,34 @@ void Nixie_set_brightness(uint8_t _brightness)
 
 
 
+Nixie_mode_enum_t Nixie_get_mode() 
+{
+  // Variabile statica per tenere traccia delle chiamate in modalità scramble
+  static int scramble_calls_left = 0;
+
+  // Se ci sono ancora chiamate in modalità scramble, decrementa il contatore e ritorna SCRAMBLE
+  if (scramble_calls_left > 0) {
+      scramble_calls_left--;
+      return SCRAMBLE;
+  }
+
+  // Genera un numero casuale tra 0 e RANDOM_RANGE
+  int random_number = rand() % RANDOM_RANGE;
+
+  // Se il numero è minore di SCRAMBLE_PROBABILITY, imposta il contatore a SCRAMBLE_CALLS e ritorna SCRAMBLE
+  // Altrimenti, ritorna NORMAL
+  if (random_number < SCRAMBLE_PROBABILITY) {
+      scramble_calls_left = SCRAMBLE_CALLS;
+      return SCRAMBLE;
+  } else {
+      return NORMAL;
+  }
+}
+
+
+
+
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	if (hspi == Nixie_hspi) {
@@ -180,4 +208,5 @@ void Nixie_get_random(uint8_t *_value_h, uint8_t *_value_m, uint8_t *_value_s)
   *_value_m = rand() % 100;
   *_value_s = rand() % 100;
 }
+
 
