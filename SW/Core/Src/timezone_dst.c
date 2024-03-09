@@ -42,3 +42,35 @@ time_t Apply_timezone_dst(time_t _utc_unixtime)
 
 
 
+
+
+time_t RTC_to_time_t(RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeDef) {
+    struct tm t;
+    t.tm_sec = timeTypeDef->Seconds;
+    t.tm_min = timeTypeDef->Minutes;
+    t.tm_hour = timeTypeDef->Hours;
+    t.tm_mday = dateTypeDef->Date;
+    t.tm_mon = dateTypeDef->Month - 1; // In struct tm, month is 0-11
+    t.tm_year = dateTypeDef->Year + 100; // Years since 1900
+    t.tm_isdst = -1; // -1 means info not available
+
+    time_t time = mktime(&t);
+    return time;
+}
+
+
+
+
+
+void time_t_to_RTC(time_t time, RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeDef) {
+    struct tm *t;
+    t = gmtime(&time);
+
+    timeTypeDef->Seconds = t->tm_sec;
+    timeTypeDef->Minutes = t->tm_min;
+    timeTypeDef->Hours = t->tm_hour;
+    dateTypeDef->Date = t->tm_mday;
+    dateTypeDef->Month = t->tm_mon + 1; // In struct tm, month is 0-11
+    dateTypeDef->Year = t->tm_year - 100; // Years since 1900
+}
+

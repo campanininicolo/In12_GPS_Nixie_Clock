@@ -184,9 +184,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 15;
@@ -252,7 +252,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Channel = ADC_CHANNEL_7;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -279,7 +279,6 @@ static void MX_RTC_Init(void)
 
   RTC_TimeTypeDef sTime = {0};
   RTC_DateTypeDef sDate = {0};
-  RTC_AlarmTypeDef sAlarm = {0};
 
   /* USER CODE BEGIN RTC_Init 1 */
 
@@ -300,6 +299,8 @@ static void MX_RTC_Init(void)
   }
 
   /* USER CODE BEGIN Check_RTC_BKUP */
+   if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0) != 0x32F2)
+  {
 
   /* USER CODE END Check_RTC_BKUP */
 
@@ -323,25 +324,10 @@ static void MX_RTC_Init(void)
   {
     Error_Handler();
   }
-
-  /** Enable the Alarm A
-  */
-  sAlarm.AlarmTime.Hours = 0x0;
-  sAlarm.AlarmTime.Minutes = 0x0;
-  sAlarm.AlarmTime.Seconds = 0x1;
-  sAlarm.AlarmTime.SubSeconds = 0x0;
-  sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-  sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
-  sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
-  sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
-  sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
-  sAlarm.AlarmDateWeekDay = 0x1;
-  sAlarm.Alarm = RTC_ALARM_A;
-  if (HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN RTC_Init 2 */
+	  HAL_RTCEx_BKUPWrite(&hrtc,RTC_BKP_DR0,0x32F2);
+  }
+
 
   /* USER CODE END RTC_Init 2 */
 
@@ -586,40 +572,80 @@ static void MX_GPIO_Init(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   // Check which version of the timer triggered this callback and toggle LED
+
   if (htim == &htim11 )
   {
-
+    // Variables
     uint8_t value_h, value_m, value_s = 0;
-    GPS_datetime_struct_t GPS_data;
     Nixie_mode_enum_t Nixie_mode;
-    // Get GPS Datetime info
-    GPS_data = GPS_Read_Datetime();
 
     // Check the mode for Nixie display. Will be ignored if GPS is not valid
     Nixie_mode = Nixie_get_mode();
 
-    // Check if valid
-    if (GPS_data.valid == 1 && Nixie_mode == NORMAL) {
-
+    if (Nixie_mode == NORMAL) {
+      // Variables 
+      RTC_TimeTypeDef sTime;
+      RTC_DateTypeDef sDate;
+      time_t UTC_unixtime;
       time_t final_unixtime;
       struct tm buf;
-      // Apply timezone adn DST
-      final_unixtime = Apply_timezone_dst(GPS_data.unixtime);
+      // Get the time and date from RTC
+      HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+      HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+      // Convert to time_t
+      UTC_unixtime = RTC_to_time_t(&sTime, &sDate);
+      // Apply timezone and DST
+      final_unixtime = Apply_timezone_dst(UTC_unixtime);
       // Convert to struct tm and get values
       gmtime_r(&final_unixtime, &buf);
       value_h = buf.tm_hour;
       value_m = buf.tm_min;
       value_s = buf.tm_sec;
-
     } else {
-
       // Get Random values otherwise
       Nixie_get_random(&value_h, &value_m, &value_s);
     }
-
     // Update the Nixie Display
     Nixie_update_display(value_h, value_m, value_s);
   }
+
+
+
+  // OLD option
+  //if (htim == &htim11 )
+  //{
+//
+  //  uint8_t value_h, value_m, value_s = 0;
+  //  GPS_datetime_struct_t GPS_data;
+  //  Nixie_mode_enum_t Nixie_mode;
+  //  // Get GPS Datetime info
+  //  GPS_data = GPS_Read_Datetime();
+//
+  //  // Check the mode for Nixie display. Will be ignored if GPS is not valid
+  //  Nixie_mode = Nixie_get_mode();
+//
+  //  // Check if valid
+  //  if (GPS_data.valid == 1 && Nixie_mode == NORMAL) {
+//
+  //    time_t final_unixtime;
+  //    struct tm buf;
+  //    // Apply timezone adn DST
+  //    final_unixtime = Apply_timezone_dst(GPS_data.unixtime);
+  //    // Convert to struct tm and get values
+  //    gmtime_r(&final_unixtime, &buf);
+  //    value_h = buf.tm_hour;
+  //    value_m = buf.tm_min;
+  //    value_s = buf.tm_sec;
+//
+  //  } else {
+//
+  //    // Get Random values otherwise
+  //    Nixie_get_random(&value_h, &value_m, &value_s);
+  //  }
+//
+  //  // Update the Nixie Display
+  //  Nixie_update_display(value_h, value_m, value_s);
+  //}
 }
 
 

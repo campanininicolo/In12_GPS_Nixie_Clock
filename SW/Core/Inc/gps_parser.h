@@ -34,7 +34,7 @@ extern "C" {
 #define UART_BUFFER_SIZE 1024
 
 typedef struct{
-  uint8_t buffer[2][UART_BUFFER_SIZE];
+  char buffer[2][UART_BUFFER_SIZE];
   uint8_t active_buffer;
   uint8_t buffer_status[2]; 
   uint16_t buffer_size[2];
