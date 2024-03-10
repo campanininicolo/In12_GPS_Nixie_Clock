@@ -31,12 +31,15 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "gps_parser.h"
-#include "nixie_display.h"
-#include "timezone_dst.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include "time.h"
 #include "stdint.h"
 #include "string.h"
+#include "gps_parser.h"
+#include "nixie_display.h"
+#include "timezone_dst.h"
+
 
 /* USER CODE END Includes */
 

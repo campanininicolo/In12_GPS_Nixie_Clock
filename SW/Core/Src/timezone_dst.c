@@ -21,23 +21,27 @@
 
 
 
+void Apply_timezone_dst(RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeDef) {
+    // Converti RTC_TimeTypeDef e RTC_DateTypeDef in time_t
+    time_t _utc_unixtime = RTC_to_time_t(timeTypeDef, dateTypeDef);
 
-time_t Apply_timezone_dst(time_t _utc_unixtime)
-{
     struct tm utc_buf;
     
-    // Extract now struct tm for UTC
+    // Estrai la struttura tm per UTC
     gmtime_r(&_utc_unixtime, &utc_buf);
 
-    // Check if date is between the last Sunday in March and the last Sunday in October at 1 AM
+    // Controlla se la data è tra l'ultima domenica di marzo e l'ultima domenica di ottobre alle 1 AM
     int year = utc_buf.tm_year + 1900;
     time_t lastSundayMarch = mktime(&(struct tm){.tm_year = year, .tm_mon = 2, .tm_mday = 31 - ((5 + 2 * year / 4 - year / 100 + year / 400) % 7), .tm_hour = 1});
     time_t lastSundayOctober = mktime(&(struct tm){.tm_year = year, .tm_mon = 9, .tm_mday = 31 - ((5 + 2 * year / 4 - year / 100 + year / 400) % 7), .tm_hour = 1});
-    // Check for DST rules
+    // Controlla le regole DST
     uint8_t dst_effective = (difftime(_utc_unixtime, lastSundayMarch) > 0 && difftime(_utc_unixtime, lastSundayOctober) < 0);
 
-    // Apply the correct amount of seconds offset
-    return(_utc_unixtime + TIMEZONE_OFFSET_S + dst_effective * DST_OFFSET_S);
+    // Applica il corretto offset di secondi
+    _utc_unixtime += TIMEZONE_OFFSET_S + dst_effective * DST_OFFSET_S;
+
+    // Converti il time_t modificato di nuovo in RTC_TimeTypeDef e RTC_DateTypeDef
+    time_t_to_RTC(_utc_unixtime, timeTypeDef, dateTypeDef);
 }
 
 

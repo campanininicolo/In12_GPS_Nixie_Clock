@@ -37,7 +37,7 @@ extern "C" {
 
 /* Functions -----------------------------------------------------------------*/
 
-time_t Apply_timezone_dst(time_t _utc_unixtime);
+void Apply_timezone_dst(RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeDef);
 time_t RTC_to_time_t(RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeDef);
 void time_t_to_RTC(time_t time, RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeDef);
 

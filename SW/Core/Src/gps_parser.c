@@ -43,7 +43,12 @@ void GPS_Init(UART_HandleTypeDef *_huart, DMA_HandleTypeDef *_hdma_usart_rx)
   GPS_buffer_struct.buffer_size[0] = 0;
   GPS_buffer_struct.buffer_size[1] = 0;
   // Init the GPS_datetime_struct as NOT-valid
-  GPS_datetime_struct.unixtime = 0;
+  GPS_datetime_struct.time.Hours = 0;
+  GPS_datetime_struct.time.Minutes = 0;
+  GPS_datetime_struct.time.Seconds = 0;
+  GPS_datetime_struct.date.Date = 0;
+  GPS_datetime_struct.date.Month = 0;
+  GPS_datetime_struct.date.Year = 0;
   GPS_datetime_struct.valid = 0;
   // Init the internal UART handler
   GPS_huart = _huart;
@@ -92,32 +97,34 @@ void GPS_Parse_ZDA_Line(char *_time_line)
     return;
   }
 
-  struct tm GPS_Date_Time_buffer;
   char time_string[15] = "";
   char date_string[15] = "";
+  unsigned int hours, minutes, seconds, date, month, year = 0;
 
   // Extract the time line and the date line
   strncpy(time_string, _time_line + 7, 10);
   strncpy(date_string, _time_line + 18, 10);
 
   // Parse the time_string using sscanf.
-  sscanf(time_string, "%2d%2d%2d",
-      &(GPS_Date_Time_buffer.tm_hour),
-      &(GPS_Date_Time_buffer.tm_min),
-      &(GPS_Date_Time_buffer.tm_sec));
+  sscanf(time_string, "%2u%2u%2u",
+      &hours,
+      &minutes,
+      &seconds);
 
   // Parse the date_string using sscanf.
-  sscanf(date_string, "%2d,%2d,%4d",
-      &(GPS_Date_Time_buffer.tm_mday),
-      &(GPS_Date_Time_buffer.tm_mon),
-      &(GPS_Date_Time_buffer.tm_year));
+  sscanf(date_string, "%2u,%2u,%4u",
+      &date,
+      &month,
+      &year); 
 
-  // Fix the date according to POSIX time
-  GPS_Date_Time_buffer.tm_year -= 1900;
-  GPS_Date_Time_buffer.tm_mon -= 1;
-
-  // Return POSIX time and valid flag
-  GPS_datetime_struct.unixtime = mktime(&GPS_Date_Time_buffer);
+  // Fix the date 
+  GPS_datetime_struct.time.Hours = hours;
+  GPS_datetime_struct.time.Minutes = minutes;
+  GPS_datetime_struct.time.Seconds = seconds; 
+  GPS_datetime_struct.date.Date = date;
+  GPS_datetime_struct.date.Month = month;
+  GPS_datetime_struct.date.Year = year - 2000;
+  // Return valid flag
   GPS_datetime_struct.valid = 1;
 }
 
@@ -175,6 +182,32 @@ void GPS_Update_Data()
 
       // TODO: Add parsing of other lines
     }
+  }
+}
+
+
+
+
+
+
+GPS_RTC_update_t GPS_RTC_check_update() 
+{
+  // Variabile statica per tenere traccia delle chiamate 
+  static unsigned int update_calls_left = 0;
+
+  // If the GPS datetime is valid perform the check
+  if (GPS_datetime_struct.valid == 1) {
+
+    if (update_calls_left == 0) {
+      update_calls_left = RTC_UPDATE_CNT;
+      return NEEDED;
+    } else {
+      update_calls_left--;
+      return NOT_NEEDED;
+    }
+
+  } else {
+	  return NOT_NEEDED;
   }
 }
 

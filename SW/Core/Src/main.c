@@ -55,11 +55,6 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 
-
-
-// TODO: Remove and clean here
-//char current_time_str[60] = "";
-uint8_t number = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -156,12 +151,6 @@ int main(void)
       //CDC_Transmit_FS("GPS-TIME Invalid\r\n", strlen("GPS-TIME Invalid\r\n"));
     }
 
-   
-    if (number >= 9) {
-      number = 0;
-    } else {
-      number++;
-    }
     HAL_Delay(500);
   }
   /* USER CODE END 3 */
@@ -577,30 +566,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     // Variables
     uint8_t value_h, value_m, value_s = 0;
+    GPS_RTC_update_t  GPS_RTC_update;
     Nixie_mode_enum_t Nixie_mode;
 
-    // Check the mode for Nixie display. Will be ignored if GPS is not valid
+    // Check if RTC should be updated
+    GPS_RTC_update = GPS_RTC_check_update();
+
+    if (GPS_RTC_update == NEEDED) {
+      GPS_datetime_struct_t GPS_data;
+      // Get GPS Datetime info
+      GPS_data = GPS_Read_Datetime();
+      if (GPS_data.valid == 1) {
+        // Set the RTC time and date
+        HAL_RTC_SetTime(&hrtc, &(GPS_data.time), RTC_FORMAT_BIN);
+        HAL_RTC_SetDate(&hrtc, &(GPS_data.date), RTC_FORMAT_BIN);
+      }
+    }
+    
+    // Check the mode for Nixie display.
     Nixie_mode = Nixie_get_mode();
 
     if (Nixie_mode == NORMAL) {
       // Variables 
       RTC_TimeTypeDef sTime;
       RTC_DateTypeDef sDate;
-      time_t UTC_unixtime;
-      time_t final_unixtime;
-      struct tm buf;
       // Get the time and date from RTC
       HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
       HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-      // Convert to time_t
-      UTC_unixtime = RTC_to_time_t(&sTime, &sDate);
       // Apply timezone and DST
-      final_unixtime = Apply_timezone_dst(UTC_unixtime);
-      // Convert to struct tm and get values
-      gmtime_r(&final_unixtime, &buf);
-      value_h = buf.tm_hour;
-      value_m = buf.tm_min;
-      value_s = buf.tm_sec;
+      Apply_timezone_dst(&sTime, &sDate);
+      // Extract hours, minutes and seconds
+      value_h = sTime.Hours;
+      value_m = sTime.Minutes;
+      value_s = sTime.Seconds;
     } else {
       // Get Random values otherwise
       Nixie_get_random(&value_h, &value_m, &value_s);

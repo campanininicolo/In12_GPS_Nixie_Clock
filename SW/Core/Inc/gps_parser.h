@@ -29,6 +29,9 @@ extern "C" {
 
 
 /* Types ---------------------------------------------------------------------*/
+/* Types ---------------------------------------------------------------------*/
+#define RTC_UPDATE_CNT 250
+
 
 
 #define UART_BUFFER_SIZE 1024
@@ -43,9 +46,18 @@ typedef struct{
 
 
 typedef struct{
-  time_t unixtime;
+  RTC_TimeTypeDef time;
+  RTC_DateTypeDef date;
   uint8_t valid;
 } GPS_datetime_struct_t;
+
+
+
+
+typedef enum {
+  NOT_NEEDED,
+  NEEDED
+} GPS_RTC_update_t;
 
 
 
@@ -55,6 +67,8 @@ void GPS_Start();
 GPS_datetime_struct_t GPS_Read_Datetime();
 
 void GPS_Update_Data();
+
+GPS_RTC_update_t GPS_RTC_check_update();
 
 
 
