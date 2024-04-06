@@ -32,8 +32,8 @@ void Apply_timezone_dst(RTC_TimeTypeDef *timeTypeDef, RTC_DateTypeDef *dateTypeD
 
     // Controlla se la data è tra l'ultima domenica di marzo e l'ultima domenica di ottobre alle 1 AM
     int year = utc_buf.tm_year + 1900;
-    time_t lastSundayMarch = mktime(&(struct tm){.tm_year = year, .tm_mon = 2, .tm_mday = 31 - ((5 + 2 * year / 4 - year / 100 + year / 400) % 7), .tm_hour = 1});
-    time_t lastSundayOctober = mktime(&(struct tm){.tm_year = year, .tm_mon = 9, .tm_mday = 31 - ((5 + 2 * year / 4 - year / 100 + year / 400) % 7), .tm_hour = 1});
+    time_t lastSundayMarch = mktime(&(struct tm){.tm_year = utc_buf.tm_year, .tm_mon = 2, .tm_mday = 31 - ((5 + 2 * year / 4 - year / 100 + year / 400) % 7), .tm_hour = 1});
+    time_t lastSundayOctober = mktime(&(struct tm){.tm_year = utc_buf.tm_year, .tm_mon = 9, .tm_mday = 31 - ((5 + 2 * year / 4 - year / 100 + year / 400) % 7), .tm_hour = 1});
     // Controlla le regole DST
     uint8_t dst_effective = (difftime(_utc_unixtime, lastSundayMarch) > 0 && difftime(_utc_unixtime, lastSundayOctober) < 0);
 
