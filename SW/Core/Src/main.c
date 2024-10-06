@@ -117,16 +117,16 @@ int main(void)
 
   // Initialize the GPS system.
   GPS_Init(&huart1, &hdma_usart1_rx);
-  // Initialize the Nixie display.
-  Nixie_init(&hspi2, &htim1, TIM_CHANNEL_1);
+  // Initialize the Vfd display.
+  Vfd_init(&hspi2, &htim1, TIM_CHANNEL_1);
   // Start the GPS system
   GPS_Start();
-  // Launch the TIM11 as interrupt. Used to update the nixie display
+  // Launch the TIM11 as interrupt. Used to update the Vfd display
   HAL_TIM_Base_Start_IT(&htim11);
   // Turn-on the HV 
-  Nixie_enable_HV();
-  // Set Nixie brightness to 50%
-  Nixie_set_brightness(20);
+  Vfd_enable_Filament();
+  // Set Vfd brightness to 100%
+  Vfd_set_brightness(100);
 
   /* USER CODE END 2 */
 
@@ -567,7 +567,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // Variables
     uint8_t value_h, value_m, value_s = 0;
     GPS_RTC_update_t  GPS_RTC_update;
-    Nixie_mode_enum_t Nixie_mode;
+    Vfd_mode_enum_t Vfd_mode;
 
     // Check if RTC should be updated
     GPS_RTC_update = GPS_RTC_check_update();
@@ -583,10 +583,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
     }
     
-    // Check the mode for Nixie display.
-    Nixie_mode = Nixie_get_mode();
+    // Check the mode for Vfd display.
+    Vfd_mode = Vfd_get_mode();
 
-    if (Nixie_mode == NORMAL) {
+    if (Vfd_mode == NORMAL) {
       // Variables 
       RTC_TimeTypeDef sTime;
       RTC_DateTypeDef sDate;
@@ -601,49 +601,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       value_s = sTime.Seconds;
     } else {
       // Get Random values otherwise
-      Nixie_get_random(&value_h, &value_m, &value_s);
+      Vfd_get_random(&value_h, &value_m, &value_s);
     }
-    // Update the Nixie Display
-    Nixie_update_display(value_h, value_m, value_s);
+    // Update the Vfd Display
+    Vfd_update_display(value_h, value_m, value_s);
   }
 
-
-
-  // OLD option
-  //if (htim == &htim11 )
-  //{
-//
-  //  uint8_t value_h, value_m, value_s = 0;
-  //  GPS_datetime_struct_t GPS_data;
-  //  Nixie_mode_enum_t Nixie_mode;
-  //  // Get GPS Datetime info
-  //  GPS_data = GPS_Read_Datetime();
-//
-  //  // Check the mode for Nixie display. Will be ignored if GPS is not valid
-  //  Nixie_mode = Nixie_get_mode();
-//
-  //  // Check if valid
-  //  if (GPS_data.valid == 1 && Nixie_mode == NORMAL) {
-//
-  //    time_t final_unixtime;
-  //    struct tm buf;
-  //    // Apply timezone adn DST
-  //    final_unixtime = Apply_timezone_dst(GPS_data.unixtime);
-  //    // Convert to struct tm and get values
-  //    gmtime_r(&final_unixtime, &buf);
-  //    value_h = buf.tm_hour;
-  //    value_m = buf.tm_min;
-  //    value_s = buf.tm_sec;
-//
-  //  } else {
-//
-  //    // Get Random values otherwise
-  //    Nixie_get_random(&value_h, &value_m, &value_s);
-  //  }
-//
-  //  // Update the Nixie Display
-  //  Nixie_update_display(value_h, value_m, value_s);
-  //}
 }
 
 

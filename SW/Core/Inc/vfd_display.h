@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
-  * @file           : nixie_display.h
-  * @brief          : Header for nixie_display.c file.
+  * @file           : vfd_display.h
+  * @brief          : Header for vfd_display.c file.
   ******************************************************************************
   * @attention
   *
@@ -16,8 +16,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __NIXIE_DISPLAY_H
-#define __NIXIE_DISPLAY_H
+#ifndef __VFD_DISPLAY_H
+#define __VFD_DISPLAY_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,19 +38,19 @@ extern "C" {
 typedef enum {
   NORMAL,
   SCRAMBLE
-} Nixie_mode_enum_t;
+} Vfd_mode_enum_t;
 
 
 
 
 /* Functions -----------------------------------------------------------------*/
-void Nixie_init(SPI_HandleTypeDef *_hspi, TIM_HandleTypeDef *_htim, uint32_t _PWM_channel);
-void Nixie_enable_HV();
-void Nixie_disable_HV();
-void Nixie_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds);
-void Nixie_set_brightness(uint8_t _brightness);
-Nixie_mode_enum_t Nixie_get_mode();
-void Nixie_get_random(uint8_t *_value_h, uint8_t *_value_m, uint8_t *_value_s);
+void Vfd_init(SPI_HandleTypeDef *_hspi, TIM_HandleTypeDef *_htim, uint32_t _PWM_channel);
+void Vfd_enable_Filament();
+void Vfd_disable_Filament();
+void Vfd_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds);
+void Vfd_set_brightness(uint8_t _brightness);
+Vfd_mode_enum_t Vfd_get_mode();
+void Vfd_get_random(uint8_t *_value_h, uint8_t *_value_m, uint8_t *_value_s);
 
 
 

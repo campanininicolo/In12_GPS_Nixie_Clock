@@ -37,7 +37,7 @@ extern "C" {
 #include "stdint.h"
 #include "string.h"
 #include "gps_parser.h"
-#include "nixie_display.h"
+#include "vfd_display.h"
 #include "timezone_dst.h"
 
 
