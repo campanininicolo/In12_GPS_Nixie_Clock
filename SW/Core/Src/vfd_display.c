@@ -28,16 +28,16 @@ TIM_HandleTypeDef *Vfd_htim;
 // Global variable for PWM channel
 uint32_t Vfd_PWM_channel = 0;
 // Display map
-uint8_t vfd_map[10] = { 0b11110101,   // 0 numeral
-                        0b00000101,   // 1 numeral
-                        0b10110011,   // 2 numeral
-                        0b10010111,   // 3 numeral
-                        0b01000111,   // 4 numeral
-                        0b11010110,   // 5 numeral
-                        0b11110110,   // 6 numeral
-                        0b10000101,   // 7 numeral
-                        0b11110111,   // 8 numeral
-                        0b11010111    // 9 numeral
+uint8_t vfd_map[10] = { 0b10101111,   // 0 numeral
+                        0b10100000,   // 1 numeral
+                        0b11001101,   // 2 numeral
+                        0b11101001,   // 3 numeral
+                        0b11100010,   // 4 numeral
+                        0b01101011,   // 5 numeral
+                        0b01101111,   // 6 numeral
+                        0b10100001,   // 7 numeral
+                        0b11101111,   // 8 numeral
+                        0b11101011    // 9 numeral
 };
 
 // Buffer for SPI communication 
@@ -135,15 +135,15 @@ void Vfd_update_display(uint8_t _hours, uint8_t _minutes, uint8_t _seconds)
   // HV_OUT_12 to HV_OUT_20 map to D5 (seconds_dec)
 
   driver_1 = 0x00000801;
-  driver_1 = driver_1 | (((uint32_t) vfd_map[hours_dec]) << 11);
+  driver_1 = driver_1 | (((uint32_t) vfd_map[hours_dec]) << 12);
   driver_1 = driver_1 | (((uint32_t) vfd_map[hours_uni]) << 1);
 
   driver_2 = 0x00000801;
-  driver_2 = driver_2 | (((uint32_t) vfd_map[minutes_dec]) << 11);
+  driver_2 = driver_2 | (((uint32_t) vfd_map[minutes_dec]) << 12);
   driver_2 = driver_2 | (((uint32_t) vfd_map[minutes_uni]) << 1);
 
   driver_3 = 0x00000801;
-  driver_3 = driver_3 | (((uint32_t) vfd_map[seconds_dec]) << 11);
+  driver_3 = driver_3 | (((uint32_t) vfd_map[seconds_dec]) << 12);
   driver_3 = driver_3 | (((uint32_t) vfd_map[seconds_uni]) << 1);
 
   // Compose the SPI buffer
