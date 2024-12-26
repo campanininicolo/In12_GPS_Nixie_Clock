@@ -121,12 +121,21 @@ int main(void)
   Vfd_init(&hspi2, &htim1, TIM_CHANNEL_1);
   // Start the GPS system
   GPS_Start();
-  // Launch the TIM11 as interrupt. Used to update the Vfd display
-  HAL_TIM_Base_Start_IT(&htim11);
+
+  // Startup procedure
   // Turn-on the HV 
   Vfd_enable_Filament();
   // Set Vfd brightness to 100%
   Vfd_set_brightness(100);
+  // Wait for 2 seconds for the display to reach operating conditions
+  HAL_Delay(2000);
+  // Turn on all segments 
+  Vfd_update_display(88, 88, 88);
+  // Wait for 2 seconds for the display to reach operating conditions
+  HAL_Delay(2000);
+  // From now on operate normally
+  // Launch the TIM11 as interrupt. Used to update the Vfd display
+  HAL_TIM_Base_Start_IT(&htim11);
 
   /* USER CODE END 2 */
 
@@ -568,6 +577,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     uint8_t value_h, value_m, value_s = 0;
     GPS_RTC_update_t  GPS_RTC_update;
     Vfd_mode_enum_t Vfd_mode;
+    RTC_TimeTypeDef sTime;
+    RTC_DateTypeDef sDate;
 
     // Check if RTC should be updated
     GPS_RTC_update = GPS_RTC_check_update();
@@ -583,23 +594,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
     }
     
+    // Get the time and date from RTC
+    HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+    // Apply timezone and DST
+    Apply_timezone_dst(&sTime, &sDate);
+    // Extract hours, minutes and seconds
+    value_h = sTime.Hours;
+    value_m = sTime.Minutes;
+    value_s = sTime.Seconds;
+    // Compute the brigthness
+    if (value_h < 7 || value_h >= 23) {
+      Vfd_set_brightness(35);
+    } else {
+      Vfd_set_brightness(100);
+    }
+    
     // Check the mode for Vfd display.
     Vfd_mode = Vfd_get_mode();
 
-    if (Vfd_mode == NORMAL) {
-      // Variables 
-      RTC_TimeTypeDef sTime;
-      RTC_DateTypeDef sDate;
-      // Get the time and date from RTC
-      HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-      HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-      // Apply timezone and DST
-      Apply_timezone_dst(&sTime, &sDate);
-      // Extract hours, minutes and seconds
-      value_h = sTime.Hours;
-      value_m = sTime.Minutes;
-      value_s = sTime.Seconds;
-    } else {
+    if (Vfd_mode != NORMAL) {
       // Get Random values otherwise
       Vfd_get_random(&value_h, &value_m, &value_s);
     }
